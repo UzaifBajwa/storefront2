@@ -1,28 +1,46 @@
+from itertools import product
+from winreg import QueryInfoKey
 from . import views
-from django.shortcuts import render
 from django.db.models import Q, F, Value, Func, ExpressionWrapper, DecimalField
 from django.db.models.aggregates import Count, Sum, Min, Max, Avg
 from django.db.models.functions import Concat
 from store.models import Cart, CartItem, OrderItem, Product, Customer, Order, Collection
 # rest_framework imports
+from django.shortcuts import get_object_or_404
 from django.http import HttpResponse
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from rest_framework import status
+from .models import Product
+from .serializers import ProductSerializer
+from store import serializers
 
 # Creating API views
 
 
 @api_view()
 def product_list(request):
-    return Response('OK')
+    queryset = Product.objects.all()
+    serializer = ProductSerializer(queryset, many=True)
+    return Response(serializer.data)
 
 
 @api_view()
 def product_details(request, id):
-    return Response(id)
-
+    product = get_object_or_404(Product, pk=id)
+    serializer = ProductSerializer(product)
+    return Response(serializer.data)
+    """     try:
+            product = Product.objects.get(pk=id)
+            serializer = ProductSerializer(product)
+            return Response(serializer.data)
+        except Product.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+ """
 
 # Create your views here.
+
+
 def show_products(request):
 
     queryset = Collection.objects.filter(id__gt=11).delete()
