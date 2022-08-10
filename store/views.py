@@ -1,4 +1,6 @@
 from itertools import product
+from turtle import title
+from urllib import request
 from winreg import QueryInfoKey
 from . import views
 from django.db.models import Q, F, Value, Func, ExpressionWrapper, DecimalField
@@ -12,7 +14,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from .models import Product
-from .serializers import ProductSerializer
+from .serializers import ProductSerializer, CollectionSerializer
 from store import serializers
 
 # Creating API views
@@ -20,8 +22,9 @@ from store import serializers
 
 @api_view()
 def product_list(request):
-    queryset = Product.objects.all()
-    serializer = ProductSerializer(queryset, many=True)
+    queryset = Product.objects.select_related('collection').all()
+    serializer = ProductSerializer(
+        queryset, many=True, context={'request': request})
     return Response(serializer.data)
 
 
@@ -37,6 +40,14 @@ def product_details(request, id):
         except Product.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
  """
+
+
+@api_view()
+def collection_detail(request, pk):
+    collection = get_object_or_404(Collection, id=pk)
+    serializer = CollectionSerializer(collection)
+    return Response(serializer.data)
+    # return Response('OK')
 
 # Create your views here.
 
