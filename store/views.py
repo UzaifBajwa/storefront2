@@ -1,4 +1,5 @@
 from itertools import product
+from os import stat
 from turtle import title
 from urllib import request
 from winreg import QueryInfoKey
@@ -30,22 +31,31 @@ def product_list(request):
     elif request.method == 'POST':
         serializer = ProductSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.validated_data
-        return Response('Ok')
+        serializer.save()
+        # serializer.validated_data
+        return Response(serializer.data)
 
 
-@api_view()
+@api_view(['GET', 'PUT'])
 def product_details(request, id):
     product = get_object_or_404(Product, pk=id)
-    serializer = ProductSerializer(product)
-    return Response(serializer.data)
-    """     try:
-            product = Product.objects.get(pk=id)
-            serializer = ProductSerializer(product)
-            return Response(serializer.data)
-        except Product.DoesNotExist:
-            return Response(status=status.HTTP_404_NOT_FOUND)
- """
+    if request.method == 'GET':
+        serializer = ProductSerializer(product)
+        serializer.save()
+        return Response(serializer.data)
+    elif request.method == 'PUT':
+        serializer = ProductSerializer(product, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        """     try:
+                    product = Product.objects.get(pk=id)
+                    serializer = ProductSerializer(product)
+                    return Response(serializer.data)
+                except Product.DoesNotExist:
+                    return Response(status=status.HTTP_404_NOT_FOUND)
+        """
 
 
 @api_view()
