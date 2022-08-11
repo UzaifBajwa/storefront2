@@ -1,5 +1,6 @@
 from itertools import product
 from os import stat
+import re
 from turtle import title
 from urllib import request
 from winreg import QueryInfoKey
@@ -36,18 +37,24 @@ def product_list(request):
         return Response(serializer.data)
 
 
-@api_view(['GET', 'PUT'])
+@api_view(['GET', 'PUT', 'DELETE'])
 def product_details(request, id):
     product = get_object_or_404(Product, pk=id)
     if request.method == 'GET':
         serializer = ProductSerializer(product)
-        serializer.save()
         return Response(serializer.data)
     elif request.method == 'PUT':
         serializer = ProductSerializer(product, data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+    elif request.method == 'DELETE':
+        if product.orderitem_set.count() > 0:
+            return Response({'error': 'Product cannot be deleted,as the product is placed for order'},
+                            status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        product.delete()
+        return Response({'Info': 'Product has been Successfully deleted.'},
+                        status=status.HTTP_204_NO_CONTENT)
 
         """     try:
                     product = Product.objects.get(pk=id)
