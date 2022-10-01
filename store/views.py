@@ -1,30 +1,17 @@
-from ast import Mod
-import collections
-import imp
-from itertools import count, product
-from os import stat
-import re
-from turtle import title
-from typing import List
-from urllib import request
-from winreg import QueryInfoKey
-from . import views
 from django.db.models import Q, F, Value, Func, ExpressionWrapper, DecimalField
 from django.db.models.aggregates import Count, Sum, Min, Max, Avg
 from django.db.models.functions import Concat
+from django_filters.rest_framework import DjangoFilterBackend
 from store.models import Cart, CartItem, OrderItem, Product, Customer, Order, Collection
 # rest_framework imports
-from django.shortcuts import get_object_or_404
-from django.http import HttpResponse
-from rest_framework.decorators import api_view
-from rest_framework.views import APIView
-from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.filters import SearchFilter, OrderingFilter
+from store.pagination import DefaultPagination
 from .models import Product, Review
 from .serializers import ProductSerializer, CollectionSerializer, ReviewSerializer
-from store import serializers
+from .filters import ProductFilter
 
 
 # Creating Generic API views
@@ -35,7 +22,7 @@ class CollectionViewSet(ModelViewSet):
     serializer_class = CollectionSerializer
 
     def destroy(self, request, *args, **kwargs):
-        if products.objects.filter(colllection_id=kwargs['pk']).count() > 0:
+        if Collection.products.objects.filter(colllection_id=kwargs['pk']).count() > 0:
             return Response({'error': 'Collection cannot be deleted because it includes one or more products.'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
         return super().destroy(request, *args, **kwargs)
 
@@ -43,13 +30,18 @@ class CollectionViewSet(ModelViewSet):
 class ProductViewSet(ModelViewSet):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_class = ProductFilter
+    pagination_class = DefaultPagination
+    search_fields = ['title', 'description']
+    ordering_fields = ['unit_price', 'last_update']
 
-    def get_queryset(self):
-        queryset = Product.objects.all()
-        collection_id = self.request.query_params.get('collection_id')
-        if collection_id is not None:
-            queryset = queryset.filter(collection_id=collection_id)
-        return queryset
+    """     def get_queryset(self):
+            queryset = Product.objects.all()
+            collection_id = self.request.query_params.get('collection_id')
+            if collection_id is not None:
+                queryset = queryset.filter(collection_id=collection_id)
+            return queryset """
 
     def get_serializer_context(self):
         return {'request': self.request}
