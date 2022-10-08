@@ -1,5 +1,9 @@
+from email.policy import default
+from enum import unique
 import imp
 from tkinter import CASCADE
+from uuid import UUID, uuid4
+from wsgiref.validate import validator
 from django.core.validators import MinValueValidator
 from typing import Collection
 from django.db import models
@@ -151,13 +155,19 @@ class OrderItem(models.Model):
 
 
 class Cart(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid4)
     created_at = models.DateTimeField(auto_now_add=True)
 
 
 class CartItem(models.Model):
-    cart = models.ForeignKey(Cart, on_delete=models.CASCADE)
+    cart = models.ForeignKey(
+        Cart, on_delete=models.CASCADE, related_name='items')
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    quantity = models.PositiveSmallIntegerField()
+    quantity = models.PositiveSmallIntegerField(
+        validators=[MinValueValidator(1)])
+
+    class Meta:
+        unique_together = [['cart', 'product']]
 
 
 class Review(models.Model):

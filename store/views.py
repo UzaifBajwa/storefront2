@@ -4,13 +4,15 @@ from django.db.models.functions import Concat
 from django_filters.rest_framework import DjangoFilterBackend
 from store.models import Cart, CartItem, OrderItem, Product, Customer, Order, Collection
 # rest_framework imports
-from rest_framework.viewsets import ModelViewSet
+from rest_framework.mixins import CreateModelMixin, RetrieveModelMixin, DestroyModelMixin
+from rest_framework.viewsets import ModelViewSet, GenericViewSet
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.filters import SearchFilter, OrderingFilter
 from store.pagination import DefaultPagination
 from .models import Product, Review
-from .serializers import ProductSerializer, CollectionSerializer, ReviewSerializer
+from .serializers import AddCartItemSerializer, CartItemSerializer, CartSerializer, ProductSerializer, CollectionSerializer, ReviewSerializer, UpdateCartItemSerializer
+# from .serializers import AddCartItemSerializer, CartItemSerializer, CartSerializer, CollectionSerializer, ProductSerializer, ReviewSerializer, UpdateCartItemSerializer
 from .filters import ProductFilter
 
 
@@ -36,13 +38,6 @@ class ProductViewSet(ModelViewSet):
     search_fields = ['title', 'description']
     ordering_fields = ['unit_price', 'last_update']
 
-    """     def get_queryset(self):
-            queryset = Product.objects.all()
-            collection_id = self.request.query_params.get('collection_id')
-            if collection_id is not None:
-                queryset = queryset.filter(collection_id=collection_id)
-            return queryset """
-
     def get_serializer_context(self):
         return {'request': self.request}
 
@@ -63,7 +58,34 @@ class ReviewVetSet(ModelViewSet):
         return {'product_id': self.kwargs['product_pk']}
 
 
-# Create your views here.
+class CartViewSet(CreateModelMixin,
+                  RetrieveModelMixin,
+                  DestroyModelMixin,
+                  GenericViewSet):
+    queryset = Cart.objects.prefetch_related('items__product').all()
+    serializer_class = CartSerializer
+
+
+class CartItemViewSet(ModelViewSet):
+    http_method_names = ['get', 'post', 'patch', 'delete']
+
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return AddCartItemSerializer
+        if self.request.method == 'PATCH':
+            return UpdateCartItemSerializer
+        return CartItemSerializer
+
+    def get_serializer_context(self):
+        return {'cart_id': self.kwargs['cart_pk']}
+
+    def get_queryset(self):
+        return CartItem.objects \
+            .filter(cart_id=self.kwargs['cart_pk']) \
+            .select_related('product')
+
+
+# function based views
 
 
 def show_products(request):
